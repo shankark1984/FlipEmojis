@@ -8,6 +8,8 @@ interface GameBoardProps {
   boardSize: BoardSize;
   mismatchedIndices: number[];
   matchedIndices: number[];
+  hintedIndices?: number[];
+  cardBackTheme?: 'classic' | 'cyber' | 'galactic' | 'gold';
   onCardClick: (index: number) => void;
   disabled?: boolean;
 }
@@ -17,6 +19,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   boardSize,
   mismatchedIndices,
   matchedIndices,
+  hintedIndices = [],
+  cardBackTheme = 'classic',
   onCardClick,
   disabled,
 }) => {
@@ -180,6 +184,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
               boardSize={boardSize}
               isMismatched={mismatchedIndices.includes(idx)}
               isMatchedJustNow={matchedIndices.includes(idx)}
+              isHinted={hintedIndices.includes(idx)}
+              cardBackTheme={cardBackTheme}
               onClick={onCardClick}
               disabled={disabled}
             />

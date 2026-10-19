@@ -25,6 +25,10 @@ import { ChatDrawer, type ChatMessage } from './components/ChatDrawer';
 import { ParticleBackground } from './components/ParticleBackground';
 import { SocialLoginModal } from './components/SocialLoginModal';
 import { ActiveDevicesModal } from './components/ActiveDevicesModal';
+import { ShopModal } from './components/ShopModal';
+import { RewardedAdModal } from './components/RewardedAdModal';
+import { GooglePlayGuideModal } from './components/GooglePlayGuideModal';
+import { PWAInstallBanner } from './components/PWAInstallBanner';
 
 export default function App() {
   // Profiles and System State
@@ -65,6 +69,11 @@ export default function App() {
   const [showChatDrawer, setShowChatDrawer] = useState<boolean>(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [unreadChatCount, setUnreadChatCount] = useState<number>(0);
+  const [showShopModal, setShowShopModal] = useState<boolean>(false);
+  const [showRewardedAdModal, setShowRewardedAdModal] = useState<boolean>(false);
+  const [showInstallModal, setShowInstallModal] = useState<boolean>(false);
+  const [showGooglePlayGuideModal, setShowGooglePlayGuideModal] = useState<boolean>(false);
+  const [hintedIndices, setHintedIndices] = useState<number[]>([]);
 
   // Timer Ref
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -216,6 +225,68 @@ export default function App() {
         );
         setIsProcessing(false);
       }, 1000);
+    }
+  };
+
+  // Find Next Match Tip Handler (costs 25 coins or free with VIP Master Pass)
+  const handleFindMatchTip = () => {
+    if (isProcessing || gameState !== 'playing') return;
+
+    const isPro = StorageService.isProPass();
+    const userCoins = StorageService.getCoins();
+
+    if (!isPro && userCoins < 25) {
+      // Prompt user to watch a rewarded ad to get 50 coins or open shop
+      setShowRewardedAdModal(true);
+      return;
+    }
+
+    // Group unmatched cards by emoji
+    const emojiMap = new Map<string, number[]>();
+    cards.forEach((c, idx) => {
+      if (!c.isMatched) {
+        const list = emojiMap.get(c.emoji) || [];
+        list.push(idx);
+        emojiMap.set(c.emoji, list);
+      }
+    });
+
+    let targetPair: number[] | null = null;
+    for (const indices of emojiMap.values()) {
+      if (indices.length >= 2) {
+        targetPair = [indices[0], indices[1]];
+        break;
+      }
+    }
+
+    if (!targetPair) return;
+
+    if (!isPro) {
+      StorageService.spendCoins(25);
+      const updated = StorageService.getProfile();
+      setProfile(updated);
+      addScorePopup('-25 🪙 Tip', true);
+    } else {
+      addScorePopup('VIP Free Tip! 👑', true);
+    }
+
+    StorageService.unlockAchievement('tip_tactician');
+    sounds.playFlip();
+
+    setHintedIndices(targetPair);
+    setTimeout(() => {
+      setHintedIndices([]);
+    }, 3500);
+  };
+
+  const handleRewardEarned = (coinsAdded: number) => {
+    const updated = StorageService.getProfile();
+    setProfile(updated);
+    addScorePopup(`+${coinsAdded} 🪙 Coins!`, true);
+    if (gameState === 'playing') {
+      setTimeout(() => {
+        handleFindMatchTip();
+      }, 400);
     }
   };
 
@@ -542,6 +613,10 @@ export default function App() {
             onOpenAvatar={() => setShowAvatarModal(true)}
             onOpenSocialLogin={() => setShowSocialModal(true)}
             onOpenDevices={() => setShowDevicesModal(true)}
+            onOpenShop={() => setShowShopModal(true)}
+            onOpenRewardedAd={() => setShowRewardedAdModal(true)}
+            onOpenInstallModal={() => setShowInstallModal(true)}
+            onOpenGooglePlayGuide={() => setShowGooglePlayGuideModal(true)}
             onOpenLeaderboard={() => {
               setLeaderboardTab('daily');
               setShowLeaderboardModal(true);
@@ -579,6 +654,10 @@ export default function App() {
             peekHintsRemaining={peekHintsRemaining}
             theme={theme}
             onToggleTheme={handleToggleTheme}
+            coins={profile.coins ?? 150}
+            isProPass={profile.isProPass}
+            onOpenShop={() => setShowShopModal(true)}
+            onFindMatchTip={handleFindMatchTip}
           />
 
           {/* Interactive Game Board */}
@@ -588,6 +667,8 @@ export default function App() {
               boardSize={boardSize}
               mismatchedIndices={mismatchedIndices}
               matchedIndices={matchedJustNow}
+              hintedIndices={hintedIndices}
+              cardBackTheme={profile.activeCardBack}
               onCardClick={handleCardClick}
               disabled={isProcessing}
             />
@@ -595,12 +676,40 @@ export default function App() {
 
           {/* Safe Bottom Control Hint */}
           <div className="w-full py-1 text-center text-[11px] text-slate-500">
-            Esc/P: Pause · M: Mute · Space: Resume · {gameMode === 'daily' ? 'Synchronized Daily Challenge' : 'Match for +2 & combo streaks'}
+            Esc/P: Pause · M: Mute · Space: Resume · 💡 Tip: 25 Coins (or Free with VIP Pass)
           </div>
         </div>
       )}
 
+      {/* PWA Install Banner & Update Notification */}
+      <PWAInstallBanner
+        forceShowModal={showInstallModal}
+        onCloseForceModal={() => setShowInstallModal(false)}
+      />
+
       {/* Modals */}
+      <ShopModal
+        isOpen={showShopModal}
+        onClose={() => setShowShopModal(false)}
+        profile={profile}
+        onProfileUpdated={setProfile}
+        onOpenRewardedAd={() => {
+          setShowShopModal(false);
+          setShowRewardedAdModal(true);
+        }}
+      />
+
+      <RewardedAdModal
+        isOpen={showRewardedAdModal}
+        onClose={() => setShowRewardedAdModal(false)}
+        onRewardEarned={handleRewardEarned}
+      />
+
+      <GooglePlayGuideModal
+        isOpen={showGooglePlayGuideModal}
+        onClose={() => setShowGooglePlayGuideModal(false)}
+      />
+
       <PauseModal
         isOpen={gameState === 'paused'}
         onResume={() => setGameState('playing')}

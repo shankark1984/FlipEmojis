@@ -22,6 +22,9 @@ export interface UserProfile {
   joinedDate: string;
   currentDeviceId?: string;
   linkedAccounts?: LinkedAccount[];
+  coins?: number;
+  isProPass?: boolean;
+  activeCardBack?: 'classic' | 'cyber' | 'galactic' | 'gold';
 }
 
 export interface Achievement {
@@ -70,6 +73,9 @@ const DEFAULT_PROFILE: UserProfile = {
   joinedDate: new Date().toLocaleDateString(),
   currentDeviceId: typeof window !== 'undefined' ? getOrCreateDeviceId() : undefined,
   linkedAccounts: [],
+  coins: 150,
+  isProPass: false,
+  activeCardBack: 'classic',
 };
 
 const INITIAL_ACHIEVEMENTS: Achievement[] = [
@@ -89,6 +95,9 @@ const INITIAL_ACHIEVEMENTS: Achievement[] = [
   { id: 'daily_champion', title: 'Daily Podium', description: 'Finish in the Top 3 on the Daily Top leaderboard', icon: '🎖️' },
   { id: 'device_linked', title: 'Hardware Authenticated', description: 'Register an active device ID with your account', icon: '📱' },
   { id: 'social_linked', title: 'Verified Citizen', description: 'Log in with a social account (Google, Facebook, X, etc.)', icon: '🌐' },
+  { id: 'ad_watcher', title: 'Ad Sponsor', description: 'Watch a rewarded ad to earn 50 bonus coins', icon: '📺' },
+  { id: 'master_pass', title: 'VIP Champion', description: 'Unlock the VIP Master Pass for advanced gameplay', icon: '👑' },
+  { id: 'tip_tactician', title: 'Tactical Mind', description: 'Use the Find Next Match tip during a game', icon: '💡' },
 ];
 
 const INITIAL_STATS: GameStatistics = {
@@ -448,4 +457,62 @@ export class StorageService {
     this.saveProfile(updatedProfile);
     return updatedProfile;
   }
+
+  // --- Coin Economy & Monetization Methods ---
+
+  public static getCoins(): number {
+    const profile = this.getProfile();
+    return typeof profile.coins === 'number' ? profile.coins : 150;
+  }
+
+  public static addCoins(amount: number, reason?: string): number {
+    const profile = this.getProfile();
+    const current = typeof profile.coins === 'number' ? profile.coins : 150;
+    const updated = Math.max(0, current + amount);
+    this.saveProfile({ ...profile, coins: updated });
+    return updated;
+  }
+
+  public static spendCoins(amount: number): boolean {
+    const profile = this.getProfile();
+    const current = typeof profile.coins === 'number' ? profile.coins : 150;
+    if (current < amount) return false;
+    this.saveProfile({ ...profile, coins: current - amount });
+    return true;
+  }
+
+  public static isProPass(): boolean {
+    const profile = this.getProfile();
+    return !!profile.isProPass;
+  }
+
+  public static unlockProPass(): UserProfile {
+    const profile = this.getProfile();
+    const updated: UserProfile = {
+      ...profile,
+      isProPass: true,
+      title: profile.title === 'Emoji Novice' ? 'VIP Grandmaster' : profile.title,
+    };
+    this.saveProfile(updated);
+    this.unlockAchievement('master_pass');
+    return updated;
+  }
+
+  public static watchRewardedAd(): { coinsGranted: number; newTotal: number } {
+    const coinsGranted = 50;
+    const newTotal = this.addCoins(coinsGranted, 'rewarded_ad');
+    this.unlockAchievement('ad_watcher');
+    return { coinsGranted, newTotal };
+  }
+
+  public static getCardBack(): 'classic' | 'cyber' | 'galactic' | 'gold' {
+    const profile = this.getProfile();
+    return profile.activeCardBack || 'classic';
+  }
+
+  public static setCardBack(theme: 'classic' | 'cyber' | 'galactic' | 'gold'): void {
+    const profile = this.getProfile();
+    this.saveProfile({ ...profile, activeCardBack: theme });
+  }
 }
+

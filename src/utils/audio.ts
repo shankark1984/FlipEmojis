@@ -229,6 +229,12 @@ class SoundEngine {
     osc.start(now);
     osc.stop(now + 0.03);
   }
+
+  public playCelebration() {
+    this.playVictory();
+  }
 }
 
 export const sounds = new SoundEngine();
+export { sounds as AudioService, SoundEngine };
+

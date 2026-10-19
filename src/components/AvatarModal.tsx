@@ -222,6 +222,11 @@ export const AvatarModal: React.FC<AvatarModalProps> = ({
             <span className="text-xs text-amber-400 font-mono">{title}</span>
             <span className="text-slate-500">•</span>
             <span className="text-xs text-emerald-400 capitalize">{provider}</span>
+            <span className="text-slate-500">•</span>
+            <span className="text-xs text-amber-300 font-mono font-bold">🪙 {(profile.coins ?? 150).toLocaleString()}</span>
+            {profile.isProPass && (
+              <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500 text-slate-950 font-black">VIP</span>
+            )}
           </div>
         </div>
 

@@ -23,6 +23,10 @@ interface GameHudProps {
   peekHintsRemaining?: number;
   theme?: 'dark' | 'light';
   onToggleTheme?: () => void;
+  coins?: number;
+  isProPass?: boolean;
+  onOpenShop?: () => void;
+  onFindMatchTip?: () => void;
 }
 
 export const GameHud: React.FC<GameHudProps> = ({
@@ -46,6 +50,10 @@ export const GameHud: React.FC<GameHudProps> = ({
   peekHintsRemaining = 0,
   theme,
   onToggleTheme,
+  coins,
+  isProPass,
+  onOpenShop,
+  onFindMatchTip,
 }) => {
   const formatTime = (totalSeconds: number) => {
     const mins = Math.floor(totalSeconds / 60);
@@ -126,6 +134,37 @@ export const GameHud: React.FC<GameHudProps> = ({
 
         {/* Utility Controls */}
         <div className="flex items-center gap-1.5">
+          {/* Find Next Match (Tip) button */}
+          {onFindMatchTip && (
+            <button
+              type="button"
+              onClick={onFindMatchTip}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-300 border border-amber-500/50 rounded-xl text-xs font-bold transition shadow-sm active:scale-95 group"
+              title="Find next matching pair on board (Uses 25 coins or free with VIP Master Pass)"
+              aria-label="Find next matching pair tip"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400 group-hover:rotate-12 transition-transform" />
+              <span className="hidden sm:inline">Tip</span>
+              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-200 border border-amber-400/30">
+                {isProPass ? 'FREE' : '25 🪙'}
+              </span>
+            </button>
+          )}
+
+          {/* Coins Balance pill */}
+          {typeof coins === 'number' && (
+            <button
+              type="button"
+              onClick={onOpenShop}
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800/80 hover:bg-slate-800 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-mono font-bold transition"
+              title="Open Coin & Pro Store"
+              aria-label="Coin balance and shop"
+            >
+              <span>🪙</span>
+              <span>{coins.toLocaleString()}</span>
+            </button>
+          )}
+
           {/* Peek Hint button for Easy / Standard */}
           {onPeekHint && peekHintsRemaining > 0 && (
             <button

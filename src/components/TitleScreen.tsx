@@ -2,7 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { type BoardSize, getDifficultyByBoardSize, getTodayDateString } from '../game/rules';
 import type { UserProfile } from '../utils/storage';
 import { StorageService } from '../utils/storage';
-import { Play, Users, Globe, Trophy, Award, Sparkles, UserCheck, Flame, Zap, Sun, Moon, Calendar, Smartphone, ShieldCheck } from 'lucide-react';
+import {
+  Play,
+  Users,
+  Globe,
+  Trophy,
+  Award,
+  Sparkles,
+  UserCheck,
+  Flame,
+  Zap,
+  Sun,
+  Moon,
+  Calendar,
+  Smartphone,
+  ShieldCheck,
+  Coins,
+  Download,
+  Tv,
+  Crown,
+  CreditCard,
+} from 'lucide-react';
 
 interface TitleScreenProps {
   profile: UserProfile;
@@ -19,6 +39,10 @@ interface TitleScreenProps {
   onOpenOnlineRoom: () => void;
   onOpenSocialLogin?: () => void;
   onOpenDevices?: () => void;
+  onOpenShop?: () => void;
+  onOpenRewardedAd?: () => void;
+  onOpenInstallModal?: () => void;
+  onOpenGooglePlayGuide?: () => void;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
 }
@@ -38,6 +62,10 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   onOpenOnlineRoom,
   onOpenSocialLogin,
   onOpenDevices,
+  onOpenShop,
+  onOpenRewardedAd,
+  onOpenInstallModal,
+  onOpenGooglePlayGuide,
   theme,
   onToggleTheme,
 }) => {
@@ -78,15 +106,20 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           onClick={onOpenAvatar}
           className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 dark:bg-slate-900/90 light-card border border-slate-800 dark:border-slate-800 hover:border-amber-500/50 transition-all text-left group"
         >
-          <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full ${profile.avatarBg} flex items-center justify-center text-sm sm:text-base shadow-sm group-hover:scale-110 transition-transform`}>
+          <div className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-full ${profile.avatarBg} flex items-center justify-center text-sm sm:text-base shadow-sm group-hover:scale-110 transition-transform`}>
             {profile.avatar}
+            {profile.isProPass && (
+              <span className="absolute -top-1 -right-1 text-[10px]">👑</span>
+            )}
           </div>
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
                 {profile.name}
               </span>
-              <span className="text-[10px] text-amber-400 font-mono">({profile.title})</span>
+              <span className="text-[10px] text-amber-400 font-mono">
+                {profile.isProPass ? 'VIP Master' : `(${profile.title})`}
+              </span>
             </div>
             <div className="text-[10px] text-slate-400 capitalize">
               {profile.provider === 'guest' ? 'Guest Player' : `${profile.provider} Connected`} · Edit
@@ -94,7 +127,36 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           </div>
         </button>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          {/* Coins Balance Pill -> Opens Shop */}
+          {onOpenShop && (
+            <button
+              type="button"
+              onClick={onOpenShop}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/40 hover:bg-amber-500/20 text-amber-300 font-mono text-xs font-bold transition-all active:scale-95 shadow-sm"
+              title="Coin & Pro Store · Click to buy coins or unlock VIP pass"
+            >
+              <Coins className="w-3.5 h-3.5 text-amber-400" />
+              <span>{(profile.coins ?? 150).toLocaleString()}</span>
+              {profile.isProPass && (
+                <span className="text-[9px] bg-amber-400 text-slate-950 px-1 rounded font-black">VIP</span>
+              )}
+            </button>
+          )}
+
+          {/* Watch Ad Free Coins Button */}
+          {onOpenRewardedAd && (
+            <button
+              type="button"
+              onClick={onOpenRewardedAd}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-violet-600/20 border border-violet-500/40 hover:bg-violet-600/30 text-violet-300 text-xs font-bold transition-all active:scale-95"
+              title="Watch 5s ad to earn +50 free coins"
+            >
+              <Tv className="w-3.5 h-3.5 text-violet-400" />
+              <span className="hidden sm:inline">+50 Coins</span>
+            </button>
+          )}
+
           {/* Active Device Tracker Chip */}
           {onOpenDevices && (
             <button
@@ -111,7 +173,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span className="text-[10px] text-emerald-300 font-semibold hidden md:inline">ACTIVE</span>
+              <span className="text-[10px] text-emerald-300 font-semibold hidden lg:inline">ACTIVE</span>
             </button>
           )}
 
@@ -132,6 +194,32 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
               <span className="hidden sm:inline">
                 {profile.provider === 'guest' ? 'Social Login' : `${profile.provider}`}
               </span>
+            </button>
+          )}
+
+          {/* Install App button */}
+          {onOpenInstallModal && (
+            <button
+              type="button"
+              onClick={onOpenInstallModal}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-600/20 border border-emerald-500/40 hover:bg-emerald-600/30 text-emerald-300 text-xs font-bold transition-all active:scale-95"
+              title="Install Flip Emojis App on this device"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Install</span>
+            </button>
+          )}
+
+          {/* Google Play Guide button */}
+          {onOpenGooglePlayGuide && (
+            <button
+              type="button"
+              onClick={onOpenGooglePlayGuide}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white text-xs font-semibold transition-all active:scale-95"
+              title="Google Play Store & Revenue Guide"
+            >
+              <span className="text-emerald-400 font-black">▶</span>
+              <span className="hidden md:inline">Play Store</span>
             </button>
           )}
 
@@ -345,6 +433,44 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
       {/* Board Size and Difficulty Selection (For solo, pass & play, online) */}
       {selectedMode !== 'daily' ? (
         <div className="w-full max-w-2xl my-2 sm:my-3">
+          {/* VIP Pass Advanced Play Promo Banner */}
+          <div className="mb-3 p-3 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-indigo-950/40 border border-amber-500/30 flex items-center justify-between gap-3 shadow-md">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg shrink-0">
+                👑
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-white text-xs font-display">Play More Advance · VIP Pass</span>
+                  {profile.isProPass ? (
+                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      ACTIVE
+                    </span>
+                  ) : (
+                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      ADVANCED MODES
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-300">
+                  {profile.isProPass
+                    ? 'All extreme 32x32 grids, unlimited hints & holographic themes unlocked!'
+                    : 'Unlock unlimited game tips, extreme 32x32 matrix, and holographic card skins!'}
+                </p>
+              </div>
+            </div>
+
+            {onOpenShop && !profile.isProPass && (
+              <button
+                type="button"
+                onClick={onOpenShop}
+                className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs rounded-xl shadow transition active:scale-95 shrink-0"
+              >
+                Unlock VIP
+              </button>
+            )}
+          </div>
+
           <div className="flex items-center justify-between mb-1.5 px-1">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
               Select Challenge Difficulty
