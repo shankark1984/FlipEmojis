@@ -1,0 +1,6 @@
+{
+  "name": "Flip Emojis",
+  "description": "Fast-paced emoji flip memory game featuring 4x4 up to 32x32 grids, multiplayer online & offline, customizable avatars, combos, leaderboards, and real-time chat.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

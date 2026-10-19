@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+/* 3D Flip Card Styles */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+/* Light Theme Styling Support */
+.light-theme {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --text-primary: #0f172a;
+}
+
+.light-theme body {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.light-theme .bg-slate-950 {
+  background-color: #f8fafc !important;
+}
+
+.light-theme .bg-slate-900 {
+  background-color: #ffffff !important;
+}
+
+.light-theme .bg-slate-900\/90 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.light-theme .bg-slate-900\/80 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.light-theme .bg-slate-900\/50 {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.light-theme .bg-slate-850\/60,
+.light-theme .bg-slate-800 {
+  background-color: #e2e8f0 !important;
+}
+
+.light-theme .border-slate-800 {
+  border-color: #cbd5e1 !important;
+}
+
+.light-theme .border-slate-850 {
+  border-color: #e2e8f0 !important;
+}
+
+.light-theme .text-slate-100,
+.light-theme .text-white {
+  color: #0f172a !important;
+}
+
+.light-theme .text-slate-300 {
+  color: #334155 !important;
+}
+
+.light-theme .text-slate-400 {
+  color: #64748b !important;
+}
+
