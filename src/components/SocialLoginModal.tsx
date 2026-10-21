@@ -47,11 +47,33 @@ export const SocialLoginModal: React.FC<SocialLoginModalProps> = ({
   onOpenDevicesModal,
 }) => {
   const [selectedProvider, setSelectedProvider] = useState<UserProfile['provider']>('google');
-  const [customHandle, setCustomHandle] = useState('');
+  const [customHandle, setCustomHandle] = useState(profile.email || '');
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState('');
   const [successInfo, setSuccessInfo] = useState<{ msg: string; deviceId: string } | null>(null);
   const [copiedDeviceId, setCopiedDeviceId] = useState(false);
+  const [copiedVerifyLink, setCopiedVerifyLink] = useState(false);
+  const [verificationPending, setVerificationPending] = useState<{ email: string; name: string } | null>(() => {
+    if (profile.provider !== 'guest' && profile.emailVerified === false) {
+      return {
+        email: profile.email || profile.verificationEmail || 'shankara.singh@gmail.com',
+        name: profile.name || 'Player',
+      };
+    }
+    return null;
+  });
+  const [isEmailApproved, setIsEmailApproved] = useState(false);
+
+  // Sync state if modal is opened when verification is pending
+  React.useEffect(() => {
+    if (isOpen && profile.provider !== 'guest' && profile.emailVerified === false) {
+      setVerificationPending({
+        email: profile.email || profile.verificationEmail || 'shankara.singh@gmail.com',
+        name: profile.name || 'Player',
+      });
+      setIsEmailApproved(false);
+    }
+  }, [isOpen, profile]);
 
   if (!isOpen) return null;
 
@@ -199,18 +221,16 @@ export const SocialLoginModal: React.FC<SocialLoginModalProps> = ({
             avatarToUse
           );
 
+          // Mark verification email sent initially
+          StorageService.sendVerificationEmail(handleToUse, nameToUse, prov);
+          onProfileUpdated(StorageService.getProfile());
+
           setIsLoading(false);
           setLoadingStep('');
-          setSuccessInfo({
-            msg: `Successfully authenticated via ${target?.name || prov}!`,
-            deviceId: result.device.deviceId,
+          setVerificationPending({
+            email: handleToUse,
+            name: nameToUse,
           });
-          onProfileUpdated(result.profile);
-
-          setTimeout(() => {
-            setSuccessInfo(null);
-            onClose();
-          }, 1800);
         }, 400);
       }, 400);
     }, 400);
@@ -357,8 +377,134 @@ export const SocialLoginModal: React.FC<SocialLoginModalProps> = ({
           </div>
         )}
 
+        {/* Verification Email Sent Screen */}
+        {verificationPending && (
+          <div className="mt-4 p-5 rounded-2xl bg-slate-950 border border-cyan-500/40 shadow-xl space-y-4 animate-fade-in">
+            {isEmailApproved ? (
+              <div className="p-5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-center space-y-2">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center text-2xl font-bold">
+                  ✓
+                </div>
+                <h4 className="text-sm font-bold text-white">Email Verified & Approved to Play!</h4>
+                <p className="text-xs text-emerald-300">
+                  Your account is verified and ready. Launching game arena...
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-xl shrink-0">
+                    ✉️
+                  </div>
+                  <div className="space-y-0.5">
+                    <h4 className="text-sm font-bold text-white">Email Verification Required</h4>
+                    <p className="text-xs text-slate-300">
+                      Sender ID: <strong className="font-mono text-amber-300 font-bold">shankara.singh@gmail.com</strong>
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      Sending link to new user: <span className="font-mono text-cyan-300 font-bold">{verificationPending.email}</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Instant 1-Click Approval Primary Action */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const approved = StorageService.approveEmailVerification();
+                    onProfileUpdated(approved);
+                    setIsEmailApproved(true);
+                    setTimeout(() => {
+                      setVerificationPending(null);
+                      onClose();
+                    }, 1200);
+                  }}
+                  className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm shadow-xl flex items-center justify-center gap-2 transition active:scale-95 border border-emerald-400/50"
+                >
+                  <CheckCircle2 className="w-5 h-5 text-slate-950" />
+                  <span>⚡ 1-Click Approve Account & Play</span>
+                </button>
+
+                {/* Explanation note on sandbox vs live SMTP */}
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-300 space-y-1.5">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-white">Verification Link Dispatched from shankara.singh@gmail.com</p>
+                      <p className="text-slate-400 mt-0.5 leading-relaxed">
+                        Verification links for new registrations are issued by <strong>shankara.singh@gmail.com</strong>. You can approve instantly below or send directly via Gmail.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Direct Verification Link Box */}
+                <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs space-y-2.5 shadow-inner">
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800/80 pb-1.5">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                      <span>From: <strong className="text-amber-300 font-mono">shankara.singh@gmail.com</strong></span>
+                    </span>
+                    <span className="font-mono text-emerald-400 text-[10px]">Authorized Dispatcher</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800 font-mono text-[11px] text-cyan-300 overflow-hidden">
+                    <span className="truncate flex-1">
+                      {window.location.origin}/?verify=1&email={encodeURIComponent(verificationPending.email)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = `${window.location.origin}/?verify=1&email=${encodeURIComponent(verificationPending.email)}`;
+                        navigator.clipboard?.writeText(url);
+                        setCopiedVerifyLink(true);
+                        setTimeout(() => setCopiedVerifyLink(false), 2000);
+                      }}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded text-[10px] font-sans flex items-center gap-1 shrink-0 transition"
+                    >
+                      {copiedVerifyLink ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiedVerifyLink ? 'Copied' : 'Copy'}</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                    <a
+                      href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(verificationPending.email)}&su=${encodeURIComponent('Verify your Flip Emojis account')}&body=${encodeURIComponent('Hello ' + verificationPending.name + ',\n\nHere is your official verification link to approve your Flip Emojis account:\n\n' + window.location.origin + '/?verify=1&email=' + encodeURIComponent(verificationPending.email) + '\n\nSent from: shankara.singh@gmail.com (Flip Emojis System Administrator)')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 bg-gradient-to-r from-red-600/30 to-amber-600/30 hover:from-red-600/40 hover:to-amber-600/40 border border-red-500/40 text-white rounded-xl text-[11px] font-semibold flex items-center justify-center gap-1.5 transition text-center"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-red-400" />
+                      <span>Send from shankara.singh@gmail.com</span>
+                    </a>
+
+                    <a
+                      href={`mailto:${encodeURIComponent(verificationPending.email)}?subject=${encodeURIComponent('Verify Flip Emojis Game Account')}&body=${encodeURIComponent('Click here to verify your Flip Emojis account: ' + window.location.origin + '/?verify=1&email=' + encodeURIComponent(verificationPending.email) + '\n\nSender: shankara.singh@gmail.com')}`}
+                      className="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-[11px] font-semibold flex items-center justify-center gap-1.5 transition text-center"
+                    >
+                      <span>📬 Default Mail Client</span>
+                    </a>
+                  </div>
+
+                  <div className="text-right pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVerificationPending(null);
+                      }}
+                      className="text-[11px] text-slate-400 hover:text-slate-200 underline"
+                    >
+                      Register with different email
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Social Provider Buttons */}
-        {!isLoading && !successInfo && (
+        {!isLoading && !successInfo && !verificationPending && (
           <div className="mt-4">
             <label className="block text-xs font-semibold text-slate-300 mb-2">
               Select Social Provider to Sign In

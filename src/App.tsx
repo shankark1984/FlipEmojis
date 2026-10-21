@@ -11,7 +11,8 @@ import {
   isGameComplete,
 } from './game/rules';
 import { StorageService, type UserProfile } from './utils/storage';
-import { sounds } from './utils/audio';
+import { sounds, AudioService } from './utils/audio';
+import confetti from 'canvas-confetti';
 import { TitleScreen } from './components/TitleScreen';
 import { GameBoard } from './components/GameBoard';
 import { GameHud } from './components/GameHud';
@@ -29,6 +30,8 @@ import { ShopModal } from './components/ShopModal';
 import { RewardedAdModal } from './components/RewardedAdModal';
 import { GooglePlayGuideModal } from './components/GooglePlayGuideModal';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
+import { DeveloperModal } from './components/DeveloperModal';
+import { NeedCoinsModal } from './components/NeedCoinsModal';
 
 export default function App() {
   // Profiles and System State
@@ -71,9 +74,57 @@ export default function App() {
   const [unreadChatCount, setUnreadChatCount] = useState<number>(0);
   const [showShopModal, setShowShopModal] = useState<boolean>(false);
   const [showRewardedAdModal, setShowRewardedAdModal] = useState<boolean>(false);
-  const [showInstallModal, setShowInstallModal] = useState<boolean>(false);
+  const [showDeveloperModal, setShowDeveloperModal] = useState<boolean>(false);
+  const [showNeedCoinsModal, setShowNeedCoinsModal] = useState<boolean>(false);
+  const [isDevUnlocked, setIsDevUnlocked] = useState<boolean>(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('dev') === 'true' || urlParams.get('dev') === '1' || localStorage.getItem('flip_emojis_developer_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [showGooglePlayGuideModal, setShowGooglePlayGuideModal] = useState<boolean>(false);
   const [hintedIndices, setHintedIndices] = useState<number[]>([]);
+
+  useEffect(() => {
+    const handleStorage = () => {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const devParam = urlParams.get('dev') === 'true' || urlParams.get('dev') === '1';
+        setIsDevUnlocked(devParam || localStorage.getItem('flip_emojis_developer_mode') === 'true');
+      } catch {}
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  // Check verification token in URL (e.g. ?verify=1 or ?token=...)
+  useEffect(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasVerify = urlParams.get('verify') || urlParams.get('token') || urlParams.get('verify_token');
+      if (hasVerify) {
+        const approved = StorageService.approveEmailVerification();
+        setProfile(approved);
+        try {
+          AudioService.playCelebration();
+          confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
+        } catch {}
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    } catch {}
+  }, []);
+
+  const handleApproveEmail = () => {
+    const approved = StorageService.approveEmailVerification();
+    setProfile(approved);
+    try {
+      AudioService.playCelebration();
+      confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
+    } catch {}
+  };
 
   // Timer Ref
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -236,8 +287,8 @@ export default function App() {
     const userCoins = StorageService.getCoins();
 
     if (!isPro && userCoins < 25) {
-      // Prompt user to watch a rewarded ad to get 50 coins or open shop
-      setShowRewardedAdModal(true);
+      // Prompt user with options: watch rewarded ad (+50 free coins) or open shop
+      setShowNeedCoinsModal(true);
       return;
     }
 
@@ -581,7 +632,9 @@ export default function App() {
     const nextSizes: Record<BoardSize, BoardSize> = {
       4: 6,
       6: 8,
-      8: 16,
+      8: 10,
+      10: 12,
+      12: 16,
       16: 32,
       32: 32,
     };
@@ -612,11 +665,9 @@ export default function App() {
             onStartGame={() => startNewGame(boardSize, gameMode)}
             onOpenAvatar={() => setShowAvatarModal(true)}
             onOpenSocialLogin={() => setShowSocialModal(true)}
-            onOpenDevices={() => setShowDevicesModal(true)}
             onOpenShop={() => setShowShopModal(true)}
-            onOpenRewardedAd={() => setShowRewardedAdModal(true)}
-            onOpenInstallModal={() => setShowInstallModal(true)}
-            onOpenGooglePlayGuide={() => setShowGooglePlayGuideModal(true)}
+            onOpenDevConsole={() => setShowDeveloperModal(true)}
+            isDevUnlocked={isDevUnlocked}
             onOpenLeaderboard={() => {
               setLeaderboardTab('daily');
               setShowLeaderboardModal(true);
@@ -625,6 +676,7 @@ export default function App() {
             onOpenOnlineRoom={() => setShowOnlineModal(true)}
             theme={theme}
             onToggleTheme={handleToggleTheme}
+            onApproveEmail={handleApproveEmail}
           />
         </div>
       )}
@@ -681,11 +733,46 @@ export default function App() {
         </div>
       )}
 
-      {/* PWA Install Banner & Update Notification */}
-      <PWAInstallBanner
-        forceShowModal={showInstallModal}
-        onCloseForceModal={() => setShowInstallModal(false)}
+      {/* PWA Auto-Update Notification (No install button on screen as requested) */}
+      <PWAInstallBanner />
+
+      {/* Need Coins Modal: appears when player needs coins for tips or hints */}
+      <NeedCoinsModal
+        isOpen={showNeedCoinsModal}
+        onClose={() => setShowNeedCoinsModal(false)}
+        currentCoins={profile.coins ?? 150}
+        requiredCoins={25}
+        onWatchAd={() => {
+          setShowNeedCoinsModal(false);
+          setShowRewardedAdModal(true);
+        }}
+        onOpenShop={() => {
+          setShowNeedCoinsModal(false);
+          setShowShopModal(true);
+        }}
       />
+
+      {/* Developer Console (Only visible when developer mode is enabled via ?dev=true or unlock) */}
+      <DeveloperModal
+        isOpen={showDeveloperModal}
+        onClose={() => setShowDeveloperModal(false)}
+        profile={profile}
+        onProfileUpdated={setProfile}
+        onOpenSocialLogin={() => setShowSocialModal(true)}
+      />
+
+      {/* Floating Dev Pill (Developer Only) */}
+      {isDevUnlocked && (
+        <button
+          type="button"
+          onClick={() => setShowDeveloperModal(true)}
+          className="fixed bottom-3 right-3 z-40 px-2.5 py-1.5 rounded-full bg-slate-900/90 border border-emerald-500/50 hover:bg-emerald-950 text-emerald-400 font-mono text-[11px] font-bold shadow-xl flex items-center gap-1.5 backdrop-blur transition active:scale-95"
+          title="Developer Console (Device Tracker & Revenue Guide)"
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>DEV</span>
+        </button>
+      )}
 
       {/* Modals */}
       <ShopModal
@@ -750,6 +837,7 @@ export default function App() {
         onSaveProfile={setProfile}
         onOpenSocialLogin={() => setShowSocialModal(true)}
         onOpenDevicesModal={() => setShowDevicesModal(true)}
+        onOpenGooglePlayGuide={() => setShowGooglePlayGuideModal(true)}
       />
 
       <SocialLoginModal

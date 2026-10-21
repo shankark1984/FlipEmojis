@@ -20,6 +20,7 @@ interface AvatarModalProps {
   onSaveProfile: (profile: UserProfile) => void;
   onOpenSocialLogin?: () => void;
   onOpenDevicesModal?: () => void;
+  onOpenGooglePlayGuide?: () => void;
 }
 
 const AVATAR_OPTIONS = [
@@ -55,6 +56,7 @@ export const AvatarModal: React.FC<AvatarModalProps> = ({
   onSaveProfile,
   onOpenSocialLogin,
   onOpenDevicesModal,
+  onOpenGooglePlayGuide,
 }) => {
   const [name, setName] = useState(profile.name);
   const [avatar, setAvatar] = useState(profile.avatar);
@@ -62,17 +64,21 @@ export const AvatarModal: React.FC<AvatarModalProps> = ({
   const [title, setTitle] = useState(profile.title);
   const [provider, setProvider] = useState(profile.provider);
   const [backupMessage, setBackupMessage] = useState('');
-  const [copiedId, setCopiedId] = useState(false);
+  const [versionTaps, setVersionTaps] = useState(0);
+  const [isDevUnlocked, setIsDevUnlocked] = useState(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('dev') === 'true' || urlParams.get('dev') === '1' || localStorage.getItem('flip_emojis_developer_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   if (!isOpen) return null;
 
   const currentDeviceId = StorageService.getDeviceId();
 
-  const handleCopyDeviceId = () => {
-    navigator.clipboard?.writeText(currentDeviceId);
-    setCopiedId(true);
-    setTimeout(() => setCopiedId(false), 2000);
-  };
+
 
   const handleSave = () => {
     const updated: UserProfile = {
@@ -176,40 +182,6 @@ export const AvatarModal: React.FC<AvatarModalProps> = ({
           >
             <X className="w-5 h-5" />
           </button>
-        </div>
-
-        {/* Device ID Badge */}
-        <div className="mt-3.5 p-3 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs text-slate-400 font-medium">Device ID:</span>
-            <span className="font-mono text-xs text-emerald-400 font-bold bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-              {currentDeviceId}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleCopyDeviceId}
-              className="text-xs text-slate-400 hover:text-amber-400 transition-colors flex items-center gap-1"
-            >
-              {copiedId ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedId ? 'Copied' : 'Copy'}</span>
-            </button>
-            {onOpenDevicesModal && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenDevicesModal();
-                }}
-                className="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-0.5 ml-2"
-              >
-                <span>Tracker</span>
-                <ExternalLink className="w-3 h-3" />
-              </button>
-            )}
-          </div>
         </div>
 
         {/* Avatar Preview */}
@@ -371,6 +343,61 @@ export const AvatarModal: React.FC<AvatarModalProps> = ({
             {backupMessage}
           </div>
         )}
+
+        {/* App Version & Developer Easter Egg */}
+        <div className="mb-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-500">
+          <button
+            type="button"
+            onClick={() => {
+              const next = versionTaps + 1;
+              setVersionTaps(next);
+              if (next >= 5) {
+                const newDev = !isDevUnlocked;
+                setIsDevUnlocked(newDev);
+                try {
+                  localStorage.setItem('flip_emojis_developer_mode', newDev ? 'true' : 'false');
+                  window.dispatchEvent(new Event('storage'));
+                } catch {}
+                setBackupMessage(newDev ? '🛠️ Developer Mode Enabled!' : 'Developer Mode Disabled.');
+                setVersionTaps(0);
+                setTimeout(() => setBackupMessage(''), 2500);
+              }
+            }}
+            className="text-[11px] font-mono text-slate-500 hover:text-slate-400 cursor-pointer select-none"
+            title="Flip Emojis v1.2.0"
+          >
+            v1.2.0 (Build 2026) {isDevUnlocked && <span className="text-emerald-400 font-bold">[Dev]</span>}
+          </button>
+
+          {isDevUnlocked && (
+            <div className="flex items-center gap-2">
+              {onOpenDevicesModal && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenDevicesModal();
+                  }}
+                  className="px-2 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded text-[10px] font-mono hover:bg-emerald-500/30 transition"
+                >
+                  Device Tracker
+                </button>
+              )}
+              {onOpenGooglePlayGuide && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenGooglePlayGuide();
+                  }}
+                  className="px-2 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded text-[10px] font-mono hover:bg-amber-500/30 transition"
+                >
+                  Play Store Guide
+                </button>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Footer Actions */}
         <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">

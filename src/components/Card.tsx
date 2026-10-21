@@ -24,21 +24,35 @@ export const Card: React.FC<CardProps> = ({
   onClick,
   disabled,
 }) => {
-  // Compute responsive sizing based on board size
-  const getCardSizeClasses = () => {
+  // Dynamically adapt box rounding per board size
+  const getRoundingClass = () => {
+    if (boardSize <= 4) return 'rounded-2xl sm:rounded-3xl';
+    if (boardSize <= 6) return 'rounded-xl sm:rounded-2xl';
+    if (boardSize <= 8) return 'rounded-lg sm:rounded-xl';
+    if (boardSize <= 12) return 'rounded-md sm:rounded-lg';
+    if (boardSize <= 16) return 'rounded-sm sm:rounded-md';
+    return 'rounded-[2px]';
+  };
+
+  // Dynamically adapt emoji font size as per grid and screen size
+  const getEmojiSizeClass = () => {
     switch (boardSize) {
       case 4:
-        return 'w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 text-2xl sm:text-3xl md:text-4xl rounded-2xl';
+        return 'text-3xl sm:text-4xl md:text-5xl';
       case 6:
-        return 'w-12 h-12 sm:w-16 sm:h-16 md:w-18 md:h-18 text-xl sm:text-2xl md:text-3xl rounded-xl';
+        return 'text-xl sm:text-2xl md:text-3xl';
       case 8:
-        return 'w-9 h-9 sm:w-11 sm:h-11 md:w-13 md:h-13 text-base sm:text-xl md:text-2xl rounded-lg';
+        return 'text-sm sm:text-lg md:text-2xl';
+      case 10:
+        return 'text-xs sm:text-base md:text-lg';
+      case 12:
+        return 'text-[11px] sm:text-sm md:text-base';
       case 16:
-        return 'w-6 h-6 sm:w-7 sm:h-7 text-xs sm:text-sm rounded-md';
+        return 'text-[9px] sm:text-xs md:text-sm';
       case 32:
-        return 'w-4 h-4 sm:w-5 sm:h-5 text-[9px] sm:text-[11px] rounded-[3px]';
+        return 'text-[7px] sm:text-[9px] md:text-[10px]';
       default:
-        return 'w-16 h-16 text-3xl rounded-xl';
+        return 'text-base sm:text-2xl';
     }
   };
 
@@ -64,9 +78,11 @@ export const Card: React.FC<CardProps> = ({
       disabled={disabled || card.isMatched || card.isFlipped}
       aria-label={`Card ${index + 1}${card.isMatched ? `, Matched ${card.emoji}` : card.isFlipped ? `, Revealed ${card.emoji}` : ', Hidden'}`}
       className={`
-        perspective-1000 relative select-none transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
-        ${getCardSizeClasses()}
-        ${disabled ? 'cursor-not-allowed' : card.isMatched ? 'cursor-default' : 'cursor-pointer hover:scale-105 active:scale-95'}
+        perspective-1000 relative select-none transition-all duration-150 outline-none
+        w-full h-full aspect-square
+        focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950
+        ${getRoundingClass()}
+        ${disabled ? 'cursor-not-allowed' : card.isMatched ? 'cursor-default' : 'cursor-pointer hover:scale-[1.04] active:scale-[0.96]'}
         ${isMismatched ? 'animate-[shake_0.4s_ease-in-out]' : ''}
         ${isMatchedJustNow ? 'animate-[bounce_0.5s_ease-in-out]' : ''}
         ${isHinted ? 'ring-4 ring-amber-400 ring-offset-2 ring-offset-slate-950 scale-105 shadow-2xl shadow-amber-400/90 z-20 animate-[pulse_1.2s_infinite]' : ''}
@@ -106,6 +122,7 @@ export const Card: React.FC<CardProps> = ({
           className={`
             absolute inset-0 backface-hidden rotate-y-180 flex items-center justify-center
             rounded-[inherit] border shadow-lg transition-colors
+            ${getEmojiSizeClass()}
             ${card.isMatched
               ? 'bg-gradient-to-br from-emerald-900/60 to-emerald-950/80 border-emerald-500/60 shadow-emerald-500/20'
               : 'bg-gradient-to-br from-slate-700 to-slate-850 border-amber-400/70 shadow-amber-500/20'
@@ -115,7 +132,7 @@ export const Card: React.FC<CardProps> = ({
           <span className="transform transition-transform scale-110 drop-shadow-md select-none leading-none">
             {card.emoji}
           </span>
-          {card.isMatched && boardSize <= 8 && (
+          {card.isMatched && boardSize <= 6 && (
             <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400" />
           )}
         </div>

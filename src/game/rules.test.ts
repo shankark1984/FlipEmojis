@@ -49,10 +49,20 @@ test('difficulty configs: 4x4, 8x8, 16x16, 32x32 have distinct challenge setting
   assert.equal(medium.scoreMultiplier, 1.5);
   assert.equal(medium.memoryWindowMs, 800);
 
+  const expert = getDifficultyByBoardSize(10);
+  assert.equal(expert.level, 'expert');
+  assert.equal(expert.cardsCount, 100);
+  assert.equal(expert.scoreMultiplier, 2.0);
+
+  const master = getDifficultyByBoardSize(12);
+  assert.equal(master.level, 'master');
+  assert.equal(master.cardsCount, 144);
+  assert.equal(master.scoreMultiplier, 2.3);
+
   const hard = getDifficultyByBoardSize(16);
   assert.equal(hard.level, 'hard');
   assert.equal(hard.cardsCount, 256);
-  assert.equal(hard.scoreMultiplier, 2.5);
+  assert.equal(hard.scoreMultiplier, 2.75);
   assert.equal(hard.memoryWindowMs, 650);
 
   const titan = getDifficultyByBoardSize(32);

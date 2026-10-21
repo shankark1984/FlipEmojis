@@ -5,7 +5,7 @@ import {
 } from './device.ts';
 
 export interface LinkedAccount {
-  provider: 'guest' | 'google' | 'facebook' | 'x' | 'github' | 'apple' | 'discord';
+  provider: 'guest' | 'google' | 'facebook' | 'x' | 'github' | 'apple' | 'discord' | 'email';
   identifier: string; // e.g. email or username
   displayName: string;
   connectedAt: string;
@@ -18,14 +18,22 @@ export interface UserProfile {
   avatar: string; // Emoji
   avatarBg: string; // Tailwind color class or hex
   title: string;
-  provider: 'guest' | 'google' | 'facebook' | 'x' | 'github' | 'apple' | 'discord';
+  provider: 'guest' | 'google' | 'facebook' | 'x' | 'github' | 'apple' | 'discord' | 'email';
   joinedDate: string;
   currentDeviceId?: string;
   linkedAccounts?: LinkedAccount[];
   coins?: number;
   isProPass?: boolean;
   activeCardBack?: 'classic' | 'cyber' | 'galactic' | 'gold';
+  isApproved?: boolean;
+  emailVerified?: boolean;
+  verificationEmail?: string;
+  verificationSentAt?: string;
+  verificationFrom?: string;
+  verificationDispatcher?: string;
 }
+
+export const VERIFICATION_SENDER_EMAIL = 'shankara.singh@gmail.com';
 
 export interface Achievement {
   id: string;
@@ -51,15 +59,31 @@ export interface LeaderboardEntry {
   streak: number;
   date: string;
   isCurrentUser?: boolean;
+  isWin?: boolean;
+  mode?: string;
 }
 
 export interface GameStatistics {
-  gamesPlayed: number;
-  gamesWon: number;
-  totalScore: number;
+  gamesPlayed: number; // Total played boards
+  gamesWon: number;    // Winning boards
+  gamesLost: number;   // Losing boards
+  totalScore: number;  // Total accumulated played points across all games
+  winPercentage: number; // (gamesWon / gamesPlayed) * 100
   bestStreak: number;
   fastestTimes: Record<number, number>; // boardSize -> seconds
   highScores: Record<number, number>; // boardSize -> score
+}
+
+export interface RankingTier {
+  tier: string;
+  level: number;
+  badge: string;
+  minPoints: number;
+  maxPoints: number;
+  color: string;
+  nextTier?: string;
+  pointsToNext?: number;
+  progressPercent: number;
 }
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -76,6 +100,8 @@ const DEFAULT_PROFILE: UserProfile = {
   coins: 150,
   isProPass: false,
   activeCardBack: 'classic',
+  isApproved: false,
+  emailVerified: false,
 };
 
 const INITIAL_ACHIEVEMENTS: Achievement[] = [
@@ -103,31 +129,17 @@ const INITIAL_ACHIEVEMENTS: Achievement[] = [
 const INITIAL_STATS: GameStatistics = {
   gamesPlayed: 0,
   gamesWon: 0,
+  gamesLost: 0,
+  winPercentage: 0,
   totalScore: 0,
   bestStreak: 0,
   fastestTimes: {},
   highScores: {},
 };
 
-// Seed global leaderboard with fun competitive profiles
-const SEED_LEADERBOARDS: LeaderboardEntry[] = [
-  { id: 'lb-1', playerName: 'PixelNinja', avatar: '🐱', avatarBg: 'bg-emerald-600', title: 'Memory Deity', boardSize: 4, score: 38, moves: 10, timeSeconds: 18, streak: 8, date: 'Today' },
-  { id: 'lb-2', playerName: 'CosmicNova', avatar: '🚀', avatarBg: 'bg-indigo-600', title: 'Grandmaster', boardSize: 4, score: 32, moves: 12, timeSeconds: 22, streak: 6, date: 'Today' },
-  { id: 'lb-3', playerName: 'ZenMaster', avatar: '🐼', avatarBg: 'bg-teal-600', title: 'Brain Dynamo', boardSize: 4, score: 28, moves: 14, timeSeconds: 29, streak: 4, date: 'Yesterday' },
-  { id: 'lb-4', playerName: 'TurboFox', avatar: '🦊', avatarBg: 'bg-amber-600', title: 'Titan 32x32', boardSize: 8, score: 142, moves: 48, timeSeconds: 98, streak: 12, date: 'Today' },
-  { id: 'lb-5', playerName: 'ShadowGhost', avatar: '👻', avatarBg: 'bg-purple-600', title: 'Board Conqueror', boardSize: 8, score: 120, moves: 56, timeSeconds: 114, streak: 9, date: 'Yesterday' },
-  { id: 'lb-6', playerName: 'CyberDragon', avatar: '🐲', avatarBg: 'bg-rose-600', title: 'Titan 32x32', boardSize: 16, score: 620, moves: 210, timeSeconds: 430, streak: 18, date: '2 days ago' },
-  { id: 'lb-7', playerName: 'QuantumBot', avatar: '🤖', avatarBg: 'bg-cyan-600', title: 'Legend 32x32', boardSize: 32, score: 2840, moves: 890, timeSeconds: 1420, streak: 34, date: '3 days ago' },
-];
-
-// Seed Daily Top leaderboard for today's synchronized challenge (6x6 board)
-const SEED_DAILY_LEADERBOARDS: LeaderboardEntry[] = [
-  { id: 'daily-lb-1', playerName: 'AuroraPulse', avatar: '🌟', avatarBg: 'bg-purple-600', title: 'Speed Demon', boardSize: 6, score: 68, moves: 24, timeSeconds: 42, streak: 11, date: 'Today (Sync)' },
-  { id: 'daily-lb-2', playerName: 'NeonBlaze', avatar: '⚡', avatarBg: 'bg-amber-600', title: 'Brain Dynamo', boardSize: 6, score: 61, moves: 26, timeSeconds: 48, streak: 9, date: 'Today (Sync)' },
-  { id: 'daily-lb-3', playerName: 'StarlightFox', avatar: '🦊', avatarBg: 'bg-indigo-600', title: 'Board Conqueror', boardSize: 6, score: 54, moves: 29, timeSeconds: 53, streak: 7, date: 'Today (Sync)' },
-  { id: 'daily-lb-4', playerName: 'PixelPanda', avatar: '🐼', avatarBg: 'bg-emerald-600', title: 'Memory Scout', boardSize: 6, score: 48, moves: 32, timeSeconds: 61, streak: 6, date: 'Today (Sync)' },
-  { id: 'daily-lb-5', playerName: 'EchoKnight', avatar: '⚔️', avatarBg: 'bg-cyan-600', title: 'Card Whiz', boardSize: 6, score: 42, moves: 36, timeSeconds: 74, streak: 5, date: 'Today (Sync)' },
-];
+// No fake dummy data - strictly real user matches and live leaderboard records
+const SEED_LEADERBOARDS: LeaderboardEntry[] = [];
+const SEED_DAILY_LEADERBOARDS: LeaderboardEntry[] = [];
 
 export class StorageService {
   public static getProfile(): UserProfile {
@@ -180,27 +192,136 @@ export class StorageService {
   public static getStats(): GameStatistics {
     try {
       const data = localStorage.getItem('flip_emojis_stats');
-      return data ? JSON.parse(data) : INITIAL_STATS;
+      if (data) {
+        const parsed = JSON.parse(data);
+        return {
+          gamesPlayed: parsed.gamesPlayed || 0,
+          gamesWon: parsed.gamesWon || 0,
+          gamesLost: parsed.gamesLost || 0,
+          winPercentage: parsed.gamesPlayed ? Number(((parsed.gamesWon / parsed.gamesPlayed) * 100).toFixed(1)) : 0,
+          totalScore: parsed.totalScore || 0,
+          bestStreak: parsed.bestStreak || 0,
+          fastestTimes: parsed.fastestTimes || {},
+          highScores: parsed.highScores || {},
+        };
+      }
+      return INITIAL_STATS;
     } catch {
       return INITIAL_STATS;
     }
   }
 
-  public static recordGame(boardSize: number, score: number, moves: number, timeSec: number, streak: number) {
+  public static getRankingTier(score?: number): RankingTier {
+    const total = typeof score === 'number' ? score : (this.getStats().totalScore || 0);
+
+    const TIERS = [
+      { tier: 'Bronze Novice', level: 1, badge: '🥉', min: 0, max: 99, color: 'text-amber-600 border-amber-600/40 bg-amber-600/10' },
+      { tier: 'Silver Apprentice', level: 2, badge: '🥈', min: 100, max: 299, color: 'text-slate-300 border-slate-300/40 bg-slate-300/10' },
+      { tier: 'Gold Specialist', level: 3, badge: '🥇', min: 300, max: 699, color: 'text-yellow-400 border-yellow-400/40 bg-yellow-400/10' },
+      { tier: 'Platinum Tactician', level: 4, badge: '💠', min: 700, max: 1499, color: 'text-cyan-400 border-cyan-400/40 bg-cyan-400/10' },
+      { tier: 'Diamond Dynamo', level: 5, badge: '💎', min: 1500, max: 3499, color: 'text-blue-400 border-blue-400/40 bg-blue-400/10' },
+      { tier: 'Master Flipster', level: 6, badge: '🔮', min: 3500, max: 7499, color: 'text-purple-400 border-purple-400/40 bg-purple-400/10' },
+      { tier: 'Grandmaster Mind', level: 7, badge: '👑', min: 7500, max: 14999, color: 'text-rose-400 border-rose-400/40 bg-rose-400/10' },
+      { tier: 'Memory Legend', level: 8, badge: '🌌', min: 15000, max: Infinity, color: 'text-emerald-400 border-emerald-400/40 bg-emerald-400/10' },
+    ];
+
+    const currentIdx = TIERS.findIndex(t => total >= t.min && total <= t.max);
+    const curr = TIERS[currentIdx !== -1 ? currentIdx : 0];
+    const next = currentIdx < TIERS.length - 1 ? TIERS[currentIdx + 1] : undefined;
+
+    const span = next ? (next.min - curr.min) : 1000;
+    const progressInTier = next ? (total - curr.min) : span;
+    const progressPercent = next ? Math.min(100, Math.max(0, Math.round((progressInTier / span) * 100))) : 100;
+    const pointsToNext = next ? Math.max(0, next.min - total) : 0;
+
+    return {
+      tier: curr.tier,
+      level: curr.level,
+      badge: curr.badge,
+      minPoints: curr.min,
+      maxPoints: curr.max,
+      color: curr.color,
+      nextTier: next ? next.tier : undefined,
+      pointsToNext,
+      progressPercent,
+    };
+  }
+
+  public static recordGame(
+    boardSize: number,
+    score: number,
+    moves: number,
+    timeSec: number,
+    streak: number,
+    isWin: boolean = true,
+    mode: string = 'solo'
+  ) {
+    return this.recordGameResult(boardSize, score, moves, timeSec, streak, isWin, mode);
+  }
+
+  public static recordGameResult(
+    boardSize: number,
+    score: number,
+    moves: number,
+    timeSec: number,
+    streak: number,
+    isWin: boolean = true,
+    mode: string = 'solo'
+  ): GameStatistics {
     const stats = this.getStats();
-    stats.gamesPlayed += 1;
-    stats.gamesWon += 1;
-    stats.totalScore += score;
-    stats.bestStreak = Math.max(stats.bestStreak, streak);
-
-    const prevBestTime = stats.fastestTimes[boardSize];
-    if (!prevBestTime || timeSec < prevBestTime) {
-      stats.fastestTimes[boardSize] = timeSec;
+    stats.gamesPlayed = (stats.gamesPlayed || 0) + 1;
+    if (isWin) {
+      stats.gamesWon = (stats.gamesWon || 0) + 1;
+    } else {
+      stats.gamesLost = (stats.gamesLost || 0) + 1;
     }
+    stats.winPercentage = stats.gamesPlayed > 0
+      ? Number(((stats.gamesWon / stats.gamesPlayed) * 100).toFixed(1))
+      : 0;
 
-    const prevHighScore = stats.highScores[boardSize];
-    if (!prevHighScore || score > prevHighScore) {
-      stats.highScores[boardSize] = score;
+    stats.totalScore = (stats.totalScore || 0) + Math.max(0, score);
+    stats.bestStreak = Math.max(stats.bestStreak || 0, streak);
+
+    if (isWin) {
+      const prevBestTime = stats.fastestTimes[boardSize];
+      if (!prevBestTime || timeSec < prevBestTime) {
+        stats.fastestTimes[boardSize] = timeSec;
+      }
+
+      const prevHighScore = stats.highScores[boardSize];
+      if (!prevHighScore || score > prevHighScore) {
+        stats.highScores[boardSize] = score;
+      }
+
+      // Record into real local leaderboard (no fake records)
+      const profile = this.getProfile();
+      const newEntry: LeaderboardEntry = {
+        id: 'usr-score-' + Date.now(),
+        playerName: profile.name,
+        avatar: profile.avatar,
+        avatarBg: profile.avatarBg,
+        title: profile.title,
+        boardSize,
+        score,
+        moves,
+        timeSeconds: timeSec,
+        streak,
+        date: 'Just now',
+        isCurrentUser: true,
+        isWin: true,
+        mode,
+      };
+      this.addLeaderboardEntry(newEntry);
+
+      // Check achievement unlocks
+      if (boardSize === 4) this.unlockAchievement('grid_4');
+      if (boardSize === 8) this.unlockAchievement('grid_8');
+      if (boardSize === 16) this.unlockAchievement('grid_16');
+      if (boardSize === 32) this.unlockAchievement('grid_32');
+      if (boardSize === 4 && timeSec < 30) this.unlockAchievement('speedster');
+      if (streak >= 3) this.unlockAchievement('streak_3');
+      if (streak >= 5) this.unlockAchievement('streak_5');
+      if (streak >= 10) this.unlockAchievement('streak_10');
     }
 
     try {
@@ -209,47 +330,21 @@ export class StorageService {
       console.error(e);
     }
 
-    // Record into local leaderboard
-    const profile = this.getProfile();
-    const newEntry: LeaderboardEntry = {
-      id: 'usr-score-' + Date.now(),
-      playerName: profile.name,
-      avatar: profile.avatar,
-      avatarBg: profile.avatarBg,
-      title: profile.title,
-      boardSize,
-      score,
-      moves,
-      timeSeconds: timeSec,
-      streak,
-      date: 'Just now',
-      isCurrentUser: true,
-    };
-    this.addLeaderboardEntry(newEntry);
-
-    // Check achievement unlocks
-    if (boardSize === 4) this.unlockAchievement('grid_4');
-    if (boardSize === 8) this.unlockAchievement('grid_8');
-    if (boardSize === 16) this.unlockAchievement('grid_16');
-    if (boardSize === 32) this.unlockAchievement('grid_32');
-    if (boardSize === 4 && timeSec < 30) this.unlockAchievement('speedster');
-    if (streak >= 3) this.unlockAchievement('streak_3');
-    if (streak >= 5) this.unlockAchievement('streak_5');
-    if (streak >= 10) this.unlockAchievement('streak_10');
-
     return stats;
   }
 
   public static getLeaderboards(boardSize?: number): LeaderboardEntry[] {
     try {
       const stored = localStorage.getItem('flip_emojis_leaderboard');
-      let list: LeaderboardEntry[] = stored ? JSON.parse(stored) : SEED_LEADERBOARDS;
+      let list: LeaderboardEntry[] = stored ? JSON.parse(stored) : [];
+      // Remove any legacy mock/seed dummy data
+      list = list.filter(e => !e.id.startsWith('lb-'));
       if (boardSize) {
         list = list.filter(e => e.boardSize === boardSize);
       }
       return list.sort((a, b) => b.score - a.score);
     } catch {
-      return SEED_LEADERBOARDS;
+      return [];
     }
   }
 
@@ -268,10 +363,12 @@ export class StorageService {
     try {
       const key = `flip_emojis_daily_lb_${dateStr}`;
       const stored = localStorage.getItem(key);
-      let list: LeaderboardEntry[] = stored ? JSON.parse(stored) : SEED_DAILY_LEADERBOARDS;
+      let list: LeaderboardEntry[] = stored ? JSON.parse(stored) : [];
+      // Remove any legacy mock dummy data
+      list = list.filter(e => !e.id.startsWith('daily-lb-'));
       return list.sort((a, b) => b.score - a.score);
     } catch {
-      return SEED_DAILY_LEADERBOARDS;
+      return [];
     }
   }
 
@@ -513,6 +610,42 @@ export class StorageService {
   public static setCardBack(theme: 'classic' | 'cyber' | 'galactic' | 'gold'): void {
     const profile = this.getProfile();
     this.saveProfile({ ...profile, activeCardBack: theme });
+  }
+
+  // --- Email Verification Flow (Login verification required before approved play) ---
+  public static sendVerificationEmail(email: string, displayName?: string, provider: UserProfile['provider'] = 'google'): { success: boolean; email: string; token: string; from: string } {
+    const current = this.getProfile();
+    const token = 'tok_' + Math.random().toString(36).substring(2, 10);
+    const updated: UserProfile = {
+      ...current,
+      email,
+      name: displayName || email.split('@')[0] || current.name,
+      provider,
+      verificationEmail: email,
+      verificationSentAt: new Date().toISOString(),
+      verificationFrom: VERIFICATION_SENDER_EMAIL,
+      verificationDispatcher: VERIFICATION_SENDER_EMAIL,
+      isApproved: false,
+      emailVerified: false,
+    };
+    this.saveProfile(updated);
+    return { success: true, email, token, from: VERIFICATION_SENDER_EMAIL };
+  }
+
+  public static approveEmailVerification(email?: string): UserProfile {
+    const current = this.getProfile();
+    const verifiedEmail = email || current.verificationEmail || current.email || 'player@flipemojis.local';
+    const updated: UserProfile = {
+      ...current,
+      email: verifiedEmail,
+      isApproved: true,
+      emailVerified: true,
+      verificationEmail: undefined,
+      verificationSentAt: undefined,
+    };
+    this.saveProfile(updated);
+    this.unlockAchievement('social_linked');
+    return updated;
   }
 }
 

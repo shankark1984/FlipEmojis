@@ -2,8 +2,8 @@
  * Pure game rules, scoring calculations, difficulty configurations, and board generator for Flip Emojis
  */
 
-export type BoardSize = 4 | 6 | 8 | 16 | 32;
-export type DifficultyLevel = 'easy' | 'standard' | 'medium' | 'hard' | 'titan';
+export type BoardSize = 4 | 6 | 8 | 10 | 12 | 16 | 32;
+export type DifficultyLevel = 'easy' | 'standard' | 'medium' | 'expert' | 'master' | 'hard' | 'titan';
 
 export interface DifficultyConfig {
   level: DifficultyLevel;
@@ -71,6 +71,38 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     hasPeekHint: false,
     streakBonusRate: 2,
   },
+  expert: {
+    level: 'expert',
+    name: 'Expert',
+    boardSize: 10,
+    cardsCount: 100,
+    pairsCount: 50,
+    description: 'Demanding 10x10 grid (100 boxes). High concentration required.',
+    badgeLabel: 'Expert',
+    badgeColor: 'text-orange-400 bg-orange-500/15 border-orange-500/40',
+    accentColor: '#f97316',
+    scoreMultiplier: 2.0,
+    parMoves: 92,
+    memoryWindowMs: 720,
+    hasPeekHint: false,
+    streakBonusRate: 2,
+  },
+  master: {
+    level: 'master',
+    name: 'Master',
+    boardSize: 12,
+    cardsCount: 144,
+    pairsCount: 72,
+    description: 'Elite 12x12 labyrinth (144 boxes). Severe spatial cognitive test.',
+    badgeLabel: 'Master',
+    badgeColor: 'text-pink-400 bg-pink-500/15 border-pink-500/40',
+    accentColor: '#ec4899',
+    scoreMultiplier: 2.3,
+    parMoves: 136,
+    memoryWindowMs: 680,
+    hasPeekHint: false,
+    streakBonusRate: 3,
+  },
   hard: {
     level: 'hard',
     name: 'Hard',
@@ -81,7 +113,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     badgeLabel: 'Hard',
     badgeColor: 'text-rose-400 bg-rose-500/15 border-rose-500/40',
     accentColor: '#f43f5e',
-    scoreMultiplier: 2.5,
+    scoreMultiplier: 2.75,
     parMoves: 230,
     memoryWindowMs: 650,
     hasPeekHint: false,
@@ -113,6 +145,10 @@ export function getDifficultyByBoardSize(size: BoardSize): DifficultyConfig {
       return DIFFICULTY_CONFIGS.standard;
     case 8:
       return DIFFICULTY_CONFIGS.medium;
+    case 10:
+      return DIFFICULTY_CONFIGS.expert;
+    case 12:
+      return DIFFICULTY_CONFIGS.master;
     case 16:
       return DIFFICULTY_CONFIGS.hard;
     case 32:

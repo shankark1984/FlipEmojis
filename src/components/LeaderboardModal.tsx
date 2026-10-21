@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { LeaderboardEntry } from '../utils/storage';
 import { StorageService } from '../utils/storage';
 import { getTodayDateString } from '../game/rules';
-import { X, Trophy, Medal, Flame, Clock, Sparkles, Calendar, Play } from 'lucide-react';
+import { X, Trophy, Medal, Flame, Clock, Sparkles, Calendar, Play, TrendingUp, CheckCircle2, XCircle, Award } from 'lucide-react';
 
 interface LeaderboardModalProps {
   isOpen: boolean;
@@ -49,6 +49,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const allTimeEntries = StorageService.getLeaderboards(filterSize);
   const currentEntries = activeTab === 'daily' ? dailyEntries : allTimeEntries;
   const userDailyRecord = StorageService.getDailyRecord(todayStr);
+  const stats = StorageService.getStats();
+  const ranking = StorageService.getRankingTier(stats.totalScore || 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
@@ -66,6 +68,57 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Player Total Points & Ranking System Card */}
+        <div className="mt-3 p-3.5 bg-gradient-to-br from-slate-950 to-slate-900/90 border border-amber-500/30 rounded-2xl shadow-inner">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">{ranking.badge}</span>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-white">{ranking.tier}</span>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    Tier {ranking.level}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Career Points: <strong className="text-amber-400 font-mono text-xs">{(stats.totalScore || 0).toLocaleString()} pts</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* Win/Loss percentage data */}
+            <div className="flex items-center gap-3 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800 text-[11px]">
+              <div className="flex items-center gap-1 text-emerald-400" title="Winning Boards">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span className="font-mono font-bold">{stats.gamesWon || 0}W</span>
+              </div>
+              <div className="flex items-center gap-1 text-rose-400" title="Losing Boards">
+                <XCircle className="w-3.5 h-3.5" />
+                <span className="font-mono font-bold">{stats.gamesLost || 0}L</span>
+              </div>
+              <div className="text-amber-300 font-mono font-bold pl-1 border-l border-slate-700" title="Win Rate Percentage">
+                {stats.winPercentage || 0}% Win
+              </div>
+            </div>
+          </div>
+
+          {/* Tier Progress Bar */}
+          {ranking.nextTier && (
+            <div className="space-y-1">
+              <div className="flex justify-between text-[10px] text-slate-400">
+                <span>Progress to {ranking.nextTier}</span>
+                <span className="font-mono text-amber-300">{(ranking.pointsToNext ?? 0).toLocaleString()} pts remaining</span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500"
+                  style={{ width: `${ranking.progressPercent}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Tab Selection: Daily Top vs All-Time */}

@@ -77,56 +77,9 @@ export const PWAInstallBanner: React.FC<PWAInstallBannerProps> = ({
     return null;
   }
 
-  const showBanner = (!hasPromptBeenShown && isInstallable) || forceShowModal;
-
   return (
     <>
-      {/* Top Banner on New Device */}
-      {showBanner && !forceShowModal && (
-        <aside
-          aria-label="App Installation Prompt"
-          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-11/12 max-w-lg bg-slate-900/95 border border-amber-500/30 rounded-2xl p-3.5 shadow-2xl backdrop-blur-xl animate-[fade-in_0.3s_ease-out]"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-xl shadow-md shadow-amber-500/20 shrink-0">
-                🃏
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-white text-xs font-display">Install Flip Emojis</span>
-                  <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    Fast & Offline
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400 truncate">
-                  Play full screen with zero lag, instant updates & daily sync
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={handleInstallClick}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-all active:scale-95"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Install</span>
-              </button>
-              <button
-                type="button"
-                onClick={dismissPrompt}
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-                title="Dismiss"
-                aria-label="Dismiss install banner"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </aside>
-      )}
+      {/* Ambient install prompt suppressed from screen as requested */}
 
       {/* Force modal or iOS Guidance Dialog */}
       {(showIOSModal || forceShowModal) && (
